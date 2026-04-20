@@ -20,7 +20,8 @@ from datetime import datetime, timedelta
 
 import telebot
 from telebot import types
-import google.generativeai as genai
+from google import genai
+from google.genai import types as genai_types
 
 # ============================================================
 # LOGGING — See everything in Railway logs
@@ -46,8 +47,8 @@ if not TELEGRAM_TOKEN or not GEMINI_API_KEY or not CHAT_ID:
     log.error("Missing env vars: TELEGRAM_TOKEN, GEMINI_API_KEY, CHAT_ID — exiting")
     sys.exit(1)
 
-genai.configure(api_key=GEMINI_API_KEY)
-gemini = genai.GenerativeModel("gemini-2.5-flash-preview-04-17")
+gemini = genai.Client(api_key=GEMINI_API_KEY)
+GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN, threaded=True, num_threads=4)
 
@@ -269,7 +270,7 @@ HINT: [1 line conceptual nudge — not the solution, just the key insight to unl
 SONG: {song['title']} → {song['url']}"""
 
     try:
-        response = gemini.generate_content(prompt)
+        response = gemini.models.generate_content(model=GEMINI_MODEL, contents=prompt)
         save_progress(progress)  # Save updated used_songs
         return response.text.strip()
     except Exception as e:
@@ -298,7 +299,7 @@ If they're venting or frustrated, be real and motivating — not cheesy.
 If they ask something unrelated to DSA, gently redirect."""
 
     try:
-        response = gemini.generate_content(prompt)
+        response = gemini.models.generate_content(model=GEMINI_MODEL, contents=prompt)
         return response.text.strip()
     except Exception as e:
         log.error(f"Gemini chat error: {e}")
@@ -322,7 +323,7 @@ Give:
 Be direct. No fluff."""
 
     try:
-        response = gemini.generate_content(prompt)
+        response = gemini.models.generate_content(model=GEMINI_MODEL, contents=prompt)
         return response.text.strip()
     except Exception as e:
         return f"⚠️ Gemini error: {e}"
