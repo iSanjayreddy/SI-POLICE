@@ -2,8 +2,8 @@ name: Daily DSA Problem to Telegram
 
 on:
   schedule:
-    - cron: '30 2 * * *'     # Runs at 7:30 AM IST (UTC 2:00)
-  workflow_dispatch:         # Allows you to test manually
+    - cron: '30 2 * * *'     # 7:30 AM IST
+  workflow_dispatch:
 
 jobs:
   send-problem:
@@ -23,6 +23,6 @@ jobs:
       
       - name: Send Daily Problem
         env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.8684377934:AAG77bhLtUZ35QbNlXRj-AtzwyfSNYDhvmw }}
-          TELEGRAM_CHAT_ID: ${{ secrets.1322358734 }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python send_problem.py
