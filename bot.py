@@ -659,10 +659,54 @@ def run_scheduler():
 # ============================================================
 # MAIN
 # ============================================================
+def kill_old_sessions():
+    """
+    Force-close any existing long-poll sessions by calling deleteWebhook
+    and then doing a getUpdates with timeout=0 via raw HTTP (not telebot).
+    This is the only reliable way to fix 409 on Railway where a new container
+    starts before the old one dies.
+    """
+    import urllib.request
+    import urllib.error
+    base = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
+
+    # Step 1: delete webhook (clears any webhook + pending poll locks)
+    try:
+        url = f"{base}/deleteWebhook?drop_pending_updates=true"
+        urllib.request.urlopen(url, timeout=10)
+        log.info("✅ deleteWebhook called — old sessions cleared")
+    except Exception as e:
+        log.warning(f"deleteWebhook failed: {e}")
+
+    # Step 2: wait for old container to fully die
+    log.info("⏳ Waiting 5s for old container to release poll lock...")
+    time.sleep(5)
+
+    # Step 3: drain any pending updates with offset so we start fresh
+    try:
+        url = f"{base}/getUpdates?offset=-1&timeout=0"
+        with urllib.request.urlopen(url, timeout=10) as r:
+            import json as _json
+            data = _json.loads(r.read())
+            results = data.get("result", [])
+            if results:
+                last_id = results[-1]["update_id"]
+                drain_url = f"{base}/getUpdates?offset={last_id + 1}&timeout=0"
+                urllib.request.urlopen(drain_url, timeout=10)
+                log.info(f"✅ Drained {len(results)} pending updates")
+            else:
+                log.info("✅ No pending updates to drain")
+    except Exception as e:
+        log.warning(f"Drain failed (non-fatal): {e}")
+
+
 if __name__ == "__main__":
     lock = acquire_lock()
 
-    # Verify bot token works before doing anything else
+    # Kill any old polling sessions BEFORE starting our own
+    kill_old_sessions()
+
+    # Verify bot token works
     try:
         me = bot.get_me()
         log.info(f"✅ Bot verified: @{me.username} (ID: {me.id})")
@@ -671,17 +715,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     threading.Thread(target=run_scheduler, daemon=True).start()
-
     log.info("🚀 DSA Coach Bot fully started — Gemini 2.5 Flash active")
-
-    # Manually drop pending updates before polling starts (avoids 409 + stale messages)
-    try:
-        updates = bot.get_updates(offset=-1, timeout=1)
-        if updates:
-            bot.get_updates(offset=updates[-1].update_id + 1, timeout=1)
-        log.info("✅ Pending updates cleared")
-    except Exception as e:
-        log.warning(f"Could not clear pending updates: {e}")
 
     bot.infinity_polling(
         timeout=20,
