@@ -673,10 +673,18 @@ if __name__ == "__main__":
 
     log.info("🚀 DSA Coach Bot fully started — Gemini 2.5 Flash active")
 
+    # Manually drop pending updates before polling starts (avoids 409 + stale messages)
+    try:
+        updates = bot.get_updates(offset=-1, timeout=1)
+        if updates:
+            bot.get_updates(offset=updates[-1].update_id + 1, timeout=1)
+        log.info("✅ Pending updates cleared")
+    except Exception as e:
+        log.warning(f"Could not clear pending updates: {e}")
+
     bot.infinity_polling(
         timeout=20,
         long_polling_timeout=15,
         allowed_updates=["message"],
-        drop_pending_updates=True,
-        logger_level=logging.WARNING,  # Only log warnings+ from telebot internals
+        logger_level=logging.WARNING,
     )
