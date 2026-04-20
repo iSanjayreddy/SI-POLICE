@@ -4,23 +4,16 @@ from flask import Flask, request, abort
 import telebot
 from google import genai
 
-logging.basicConfig(level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
 
 TOKEN      = os.environ["TELEGRAM_TOKEN"]
 GEMINI_KEY = os.environ["GEMINI_API_KEY"]
 CHAT_ID    = int(os.environ["CHAT_ID"])
+WEBHOOK_URL = os.environ["WEBHOOK_URL"]  # e.g. https://si-police.up.railway.app
 PORT       = int(os.getenv("PORT", 8080))
 START_DATE = os.getenv("START_DATE", "2026-04-21")
 DATA_FILE  = "progress.json"
-
-RAILWAY_URL = os.getenv("RAILWAY_PUBLIC_DOMAIN", "")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL", f"https://{RAILWAY_URL}" if RAILWAY_URL else "")
-
-if not WEBHOOK_URL:
-    log.error("Set WEBHOOK_URL in Railway env vars (your Railway public domain URL)")
-    raise SystemExit(1)
 
 gemini_client = genai.Client(api_key=GEMINI_KEY)
 MODEL = "gemini-2.0-flash"
@@ -33,7 +26,7 @@ def load():
     with _lock:
         try:
             return json.load(open(DATA_FILE))
-        except Exception:
+        except:
             return {"solves": [], "logs": [], "skips": [],
                     "streaks": {"current": 0, "best": 0, "last_solve_date": ""},
                     "used_songs": [], "start_date": START_DATE,
@@ -66,18 +59,16 @@ def update_streak(d):
         d["streaks"]["best"] = d["streaks"]["current"]
 
 SONGS = [
-    ("POWER - Kanye West",           "https://youtu.be/L53gjP-TtGE"),
-    ("Sicko Mode - Travis Scott",    "https://youtu.be/6ONRf7h3Mdk"),
-    ("Humble - Kendrick Lamar",      "https://youtu.be/tvTRZJ-4EyI"),
-    ("DNA - Kendrick Lamar",         "https://youtu.be/NLYBE8eFWts"),
-    ("Mask Off - Future",            "https://youtu.be/xvZqHgFz51I"),
-    ("Goosebumps - Travis Scott",    "https://youtu.be/Dst9gZkq1a8"),
-    ("Black Skinhead - Kanye West",  "https://youtu.be/NkRkBDQ7fR0"),
-    ("God's Plan - Drake",           "https://youtu.be/xpVfcZ0ZcFM"),
-    ("m.A.A.d city - Kendrick",      "https://youtu.be/xFFUkxBdCfQ"),
-    ("NEW MAGIC WAND - Tyler",       "https://youtu.be/9-RMcwVLBqQ"),
-    ("Started From Bottom - Drake",  "https://youtu.be/RubBzkZzpUA"),
-    ("Bad and Boujee - Migos",       "https://youtu.be/P9mh7zHtPMY"),
+    ("POWER - Kanye West",          "https://youtu.be/L53gjP-TtGE"),
+    ("Sicko Mode - Travis Scott",   "https://youtu.be/6ONRf7h3Mdk"),
+    ("Humble - Kendrick Lamar",     "https://youtu.be/tvTRZJ-4EyI"),
+    ("DNA - Kendrick Lamar",        "https://youtu.be/NLYBE8eFWts"),
+    ("Mask Off - Future",           "https://youtu.be/xvZqHgFz51I"),
+    ("Goosebumps - Travis Scott",   "https://youtu.be/Dst9gZkq1a8"),
+    ("God's Plan - Drake",          "https://youtu.be/xpVfcZ0ZcFM"),
+    ("m.A.A.d city - Kendrick",     "https://youtu.be/xFFUkxBdCfQ"),
+    ("Started From Bottom - Drake", "https://youtu.be/RubBzkZzpUA"),
+    ("Bad and Boujee - Migos",      "https://youtu.be/P9mh7zHtPMY"),
 ]
 
 def pick_song(d):
@@ -95,7 +86,7 @@ def ask(prompt):
         return gemini_client.models.generate_content(model=MODEL, contents=prompt).text.strip()
     except Exception as e:
         log.error(f"Gemini: {e}")
-        return f"⚠️ Gemini error: {e}"
+        return f"Gemini error: {e}"
 
 def get_problem(d):
     w, day = week_day(d)
@@ -206,7 +197,8 @@ def cmd_chat(m):
     bot.send_chat_action(m.chat.id, "typing")
     bot.reply_to(m, coach_reply(m.text, d))
 
-@app.route(f"/{TOKEN}", methods=["POST"])
+# Simple /webhook path — no token in URL so no special character issues
+@app.route("/webhook", methods=["POST"])
 def webhook():
     if request.content_type != "application/json":
         abort(403)
@@ -218,11 +210,11 @@ def health():
     return "DSA Coach Bot running", 200
 
 if __name__ == "__main__":
-    url = f"{WEBHOOK_URL.rstrip('/')}/{TOKEN}"
+    webhook_url = f"{WEBHOOK_URL.rstrip('/')}/webhook"
     bot.remove_webhook()
     time.sleep(1)
-    bot.set_webhook(url=url)
-    log.info(f"Webhook set: {url}")
+    bot.set_webhook(url=webhook_url)
+    log.info(f"Webhook set: {webhook_url}")
     threading.Thread(target=run_scheduler, daemon=True).start()
     log.info("Bot running")
     app.run(host="0.0.0.0", port=PORT)
