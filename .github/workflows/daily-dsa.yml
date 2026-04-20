@@ -1,0 +1,28 @@
+name: Daily DSA Problem to Telegram
+
+on:
+  schedule:
+    - cron: '30 2 * * *'     # Runs at 7:30 AM IST (UTC 2:00)
+  workflow_dispatch:         # Allows you to test manually
+
+jobs:
+  send-problem:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install requests
+        run: pip install requests
+      
+      - name: Send Daily Problem
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.8684377934:AAG77bhLtUZ35QbNlXRj-AtzwyfSNYDhvmw }}
+          TELEGRAM_CHAT_ID: ${{ secrets.1322358734 }}
+        run: python send_problem.py
