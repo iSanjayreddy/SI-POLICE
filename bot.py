@@ -16,7 +16,7 @@ START_DATE = os.getenv("START_DATE", "2026-04-21")
 DATA_FILE  = "progress.json"
 
 gemini_client = genai.Client(api_key=GEMINI_KEY)
-MODEL = "gemini-2.0-flash"
+MODEL = "gemini-1.5-flash"
 bot   = telebot.TeleBot(TOKEN, threaded=False)
 app   = Flask(__name__)
 
@@ -25,7 +25,20 @@ _lock = threading.Lock()
 def load():
     with _lock:
         try:
-            return json.load(open(DATA_FILE))
+            d = json.load(open(DATA_FILE))
+            # Ensure all keys exist even in old files
+            d.setdefault("solves", [])
+            d.setdefault("logs", [])
+            d.setdefault("skips", [])
+            d.setdefault("used_songs", [])
+            d.setdefault("start_date", START_DATE)
+            d.setdefault("paused", False)
+            d.setdefault("pause_until", "")
+            d.setdefault("streaks", {"current": 0, "best": 0, "last_solve_date": ""})
+            d["streaks"].setdefault("current", 0)
+            d["streaks"].setdefault("best", 0)
+            d["streaks"].setdefault("last_solve_date", "")
+            return d
         except:
             return {"solves": [], "logs": [], "skips": [],
                     "streaks": {"current": 0, "best": 0, "last_solve_date": ""},
