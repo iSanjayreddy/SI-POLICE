@@ -16,7 +16,7 @@ START_DATE = os.getenv("START_DATE", "2026-04-21")
 DATA_FILE  = "progress.json"
 
 gemini_client = genai.Client(api_key=GEMINI_KEY)
-MODEL = "gemini-1.5-flash"
+MODEL = "gemini-1.5-flash-latest"
 bot   = telebot.TeleBot(TOKEN, threaded=False)
 app   = Flask(__name__)
 
