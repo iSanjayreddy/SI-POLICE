@@ -150,40 +150,40 @@ def run_scheduler():
 def cmd_status(m):
     d = load(); w, day = week_day(d); s = d["streaks"]
     recent = "\n".join(f"  {x['problem']}" for x in d["solves"][-5:]) or "  None yet"
-    bot.reply_to(m,
+    bot.send_message(m.chat.id,
         f"DSA Coach\nWeek {w} Day {day} - {topic(w)}\n"
         f"Solves: {len(d['solves'])} | Streak: {s['current']} days (best: {s['best']})\n\n"
         f"Recent:\n{recent}")
 
 @bot.message_handler(commands=["extra"])
 def cmd_extra(m):
-    bot.reply_to(m, "Fetching problem...")
+    bot.send_message(m.chat.id, "Fetching problem...")
     d = load()
-    bot.reply_to(m, get_problem(d), disable_web_page_preview=True)
+    bot.send_message(m.chat.id, get_problem(d), disable_web_page_preview=True)
 
 @bot.message_handler(commands=["solved"])
 def cmd_solved(m):
     parts = m.text.split(maxsplit=1)
     if len(parts) < 2:
-        bot.reply_to(m, "Usage: /solved 238"); return
+        bot.send_message(m.chat.id, "Usage: /solved 238"); return
     d = load()
     d["solves"].append({"problem": parts[1].strip(), "date": datetime.now().strftime("%Y-%m-%d")})
     update_streak(d); save(d)
-    bot.reply_to(m, f"Logged {parts[1].strip()}! Streak: {d['streaks']['current']} days")
+    bot.send_message(m.chat.id, f"Logged {parts[1].strip()}! Streak: {d['streaks']['current']} days")
 
 @bot.message_handler(commands=["log"])
 def cmd_log(m):
     parts = m.text.split(maxsplit=1)
     if len(parts) < 2:
-        bot.reply_to(m, "Usage: /log struggled with trees"); return
+        bot.send_message(m.chat.id, "Usage: /log struggled with trees"); return
     d = load()
     d["logs"].append({"note": parts[1].strip(), "date": datetime.now().strftime("%Y-%m-%d")})
-    save(d); bot.reply_to(m, "Logged!")
+    save(d); bot.send_message(m.chat.id, "Logged!")
 
 @bot.message_handler(commands=["skip"])
 def cmd_skip(m):
     d = load(); d["skips"].append({"date": datetime.now().strftime("%Y-%m-%d")}); save(d)
-    bot.reply_to(m, "Skipped today. Come back tomorrow.")
+    bot.send_message(m.chat.id, "Skipped today. Come back tomorrow.")
 
 @bot.message_handler(commands=["break"])
 def cmd_break(m):
@@ -191,24 +191,24 @@ def cmd_break(m):
     days  = int(parts[1]) if len(parts) > 1 else 1
     until = (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d")
     d = load(); d["paused"] = True; d["pause_until"] = until; save(d)
-    bot.reply_to(m, f"Paused for {days} days. /resume when back.")
+    bot.send_message(m.chat.id, f"Paused for {days} days. /resume when back.")
 
 @bot.message_handler(commands=["resume"])
 def cmd_resume(m):
     d = load(); d["paused"] = False; d["pause_until"] = ""; save(d)
-    bot.reply_to(m, "Resumed!")
+    bot.send_message(m.chat.id, "Resumed!")
 
 @bot.message_handler(commands=["ping"])
 def cmd_ping(m):
-    bot.reply_to(m, f"Alive! {datetime.now().strftime('%H:%M UTC')}")
+    bot.send_message(m.chat.id, f"Alive! {datetime.now().strftime('%H:%M UTC')}")
 
 @bot.message_handler(func=lambda m: True, content_types=["text"])
 def cmd_chat(m):
     if m.text and m.text.startswith("/"):
-        bot.reply_to(m, "Unknown command. Try /start"); return
+        bot.send_message(m.chat.id, "Unknown command. Try /start"); return
     d = load()
     bot.send_chat_action(m.chat.id, "typing")
-    bot.reply_to(m, coach_reply(m.text, d))
+    bot.send_message(m.chat.id, coach_reply(m.text, d))
 
 # Simple /webhook path — no token in URL so no special character issues
 @app.route("/webhook", methods=["POST"])
