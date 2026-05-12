@@ -14,6 +14,7 @@ PORT       = int(os.getenv("PORT", 8080))
 START_DATE = os.getenv("START_DATE", "2026-04-21")
 DATA_FILE  = "progress.json"
 
+groq_client = Groq(api_key=os.environ["GROQ_API_KEY"])
 bot   = telebot.TeleBot(TOKEN, threaded=False)
 app   = Flask(__name__)
 
