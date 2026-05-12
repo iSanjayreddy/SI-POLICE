@@ -16,7 +16,7 @@ START_DATE = os.getenv("START_DATE", "2026-04-21")
 DATA_FILE  = "progress.json"
 
 gemini_client = genai.Client(api_key=GEMINI_KEY)
-MODEL = "gemini-1.5-flash-latest"
+MODEL = "gemini-2.0-flash-lite"
 bot   = telebot.TeleBot(TOKEN, threaded=False)
 app   = Flask(__name__)
 
@@ -130,6 +130,9 @@ def send_daily():
         return
     w, day = week_day(d)
     rec = get_problem(d)
+    if rec.startswith("Gemini error"):
+        log.error(f"Skipping daily — {rec}")
+        return
     try:
         bot.send_message(CHAT_ID,
             f"Good morning!\nWeek {w} Day {day} - {topic(w)}\n"
