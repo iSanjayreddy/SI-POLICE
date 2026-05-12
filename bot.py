@@ -2,21 +2,18 @@ import os, json, logging, threading, schedule, time, random
 from datetime import datetime, timedelta
 from flask import Flask, request, abort
 import telebot
-from google import genai
+from groq import Groq
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
 
 TOKEN      = os.environ["TELEGRAM_TOKEN"]
-GEMINI_KEY = os.environ["GEMINI_API_KEY"]
 CHAT_ID    = int(os.environ["CHAT_ID"])
 WEBHOOK_URL = os.getenv("WEBHOOK_URL", "")
 PORT       = int(os.getenv("PORT", 8080))
 START_DATE = os.getenv("START_DATE", "2026-04-21")
 DATA_FILE  = "progress.json"
 
-gemini_client = genai.Client(api_key=GEMINI_KEY)
-MODEL = "gemini-2.0-flash-lite"
 bot   = telebot.TeleBot(TOKEN, threaded=False)
 app   = Flask(__name__)
 
@@ -96,10 +93,11 @@ def pick_song(d):
 
 def ask(prompt):
     try:
-        return gemini_client.models.generate_content(model=MODEL, contents=prompt).text.strip()
+        r = groq_client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role":"user","content":prompt}], max_tokens=500)
+        return r.choices[0].message.content.strip()
     except Exception as e:
-        log.error(f"Gemini: {e}")
-        return f"Gemini error: {e}"
+        log.error(f"Groq: {e}")
+        return f"AI error: {e}"
 
 def get_problem(d):
     w, day = week_day(d)
@@ -130,7 +128,7 @@ def send_daily():
         return
     w, day = week_day(d)
     rec = get_problem(d)
-    if rec.startswith("Gemini error"):
+    if rec.startswith("AI error"):
         log.error(f"Skipping daily — {rec}")
         return
     try:
